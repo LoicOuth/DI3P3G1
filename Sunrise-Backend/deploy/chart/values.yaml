@@ -1,0 +1,19 @@
+replicaCount: 1
+
+image:
+  repository: diiageproject/g1-backend
+  pullPolicy: Always
+  tag: "dev"
+
+env:
+  "DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE": "false"
+
+service:
+  type: ClusterIP
+  port: 80
+
+autoscaling:
+  enabled: false
+
+serviceAccount:
+  create: false

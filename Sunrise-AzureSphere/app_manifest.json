@@ -1,0 +1,22 @@
+{
+  "SchemaVersion": 1,
+  "Name": "AzureIoT",
+  "ComponentId": "819255ff-8640-41fd-aea7-f85d34c491d5",
+  "EntryPoint": "/bin/app",
+  "CmdArgs": ["--Hostname", "d3p3g1-iothub-dev.azure-devices.net"],
+  "Capabilities": {
+    "AllowedConnections": ["d3p3g1-iothub-dev.azure-devices.net"],
+    "Adc": [
+      "$SAMPLE_POTENTIOMETER_ADC_CONTROLLER"
+    ],
+    "Gpio": [
+      "$SAMPLE_BUTTON_1",
+      "$SAMPLE_BUTTON_2",
+      "$SAMPLE_LED",
+      "$SAMPLE_LED_PIN"
+    ],
+    "DeviceAuthentication": "72effe4e-aca6-4454-a276-9d4adc931646"
+  },
+  "ApplicationType": "Default",
+  "MallocVersion": 2
+}

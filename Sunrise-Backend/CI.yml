@@ -1,0 +1,58 @@
+# Variable 'imageName' was defined in the Variables tab
+# Variable 'TagsDocker' was defined in the Variables tab
+trigger:
+  branches:
+    include:
+    - refs/heads/dev
+name: $(date:yyyyMMdd)$(rev:.r)
+resources:
+  repositories:
+  - repository: self
+    type: git
+    ref: refs/heads/dev
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    vmImage: ubuntu-latest
+  steps:
+  - checkout: self
+    clean: true
+    fetchTags: false
+  - task: UseDotNet@2
+    displayName: Use .NET Core sdk 6.x
+    inputs:
+      version: 6.x
+  - task: NuGetToolInstaller@1
+    displayName: 'Use NuGet '
+  - task: NuGetCommand@2
+    displayName: NuGet restore
+  - task: DotNetCoreCLI@2
+    displayName: Exécuter les tests unitaires
+    inputs:
+      command: 'test'
+      projects: '**/*UnitTest.csproj'
+  - task: DotNetCoreCLI@2
+    displayName: Exécuter les tests d'intégration
+    inputs:
+      command: 'test'
+      projects: '**/*IntegrationTest.csproj'
+  - task: DotNetCoreCLI@2
+    displayName: dotnet build
+  # - task: Docker@2
+  #   displayName: buildAndPush
+  #   inputs:
+  #     containerRegistry: 30942711-2087-45a2-8bf4-919ad5788a63
+  #     repository: diiageproject/g1-backend
+  #     Dockerfile: Dockerfile
+  #     buildContext: .
+  #     tags: dev
+  - task: Docker@2
+    inputs:
+      containerRegistry: 'D3-P3-G1 Docker Registry'
+      repository: 'DI3P3G1-backend'
+      command: 'buildAndPush'
+      Dockerfile: Dockerfile
+      buildContext: .
+      tags: dev
+...

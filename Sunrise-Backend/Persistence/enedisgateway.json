@@ -1,0 +1,927 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "# A Propos\nCette API permet de récupérer les données de consommation, de production, ainsi que les donnéees techniques et contractuelles d'un consommateur et/ou producteur d'électricité. L'utilisation de cette API est soumise au recueil préalable du consontement de l'utilisateur par Enedis. Pour se faire, veuillez-vous rendre sur [cette page](https://enedisgateway.tech)\n# Authentification\nL'utilisation de cette API nécessite un token qui vous sera fourni à l'issue du recueil de consentement. Il devra être fourni dans l'entête HTTP de tous vos appels.\n# Limitations\nEnedis limite le nombre de requêtes par seconde envoyées par le partenaire. Par conséquent, afin de laisser la possibilité à tout le monde de récupérer ses informations, il est recommandé de ne pas effectuer de demande de données de consommation et/ou production plus d'une fois par jour, d'autant plus qu'Enedis ne les met à jour qu'une fois par jour.\n# Support\nSi vous avez des questions, rejoignez-nous sur [Discord](https://discord.gg/ujAUupP)\n",
+    "title": "Enedis API",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Madmartigan",
+      "url": "https://enedisgateway.tech"
+    }
+  },
+  "paths": {
+    "/api": {
+      "post": {
+        "summary": "Récupérer les données Enedis",
+        "description": "Cette ressource vous permet de récuperer l'ensemble des données Enedis, à savoir les données de consommation/production détaillées ou quotidienne, ainsi que les informations sur le contrat de l'utilisateur.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/authorizationParamsHeader"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/API_BODY"
+              }
+            }
+          },
+          "description": "Les paramètres pour récupérer les données de consommation Enedis.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Retourne la liste des données.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ConsumptionLoadCurve"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DailyConsumption"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DailyConsumptionMaxPower"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ProductionLoadCurve"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DailyProduction"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Identity"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Contract"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Addresses"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "curl",
+            "source": "curl -X POST \\\n  https://enedisgateway.tech/api\n  -H 'Authorization: TOKEN' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"type\": \"consumption_load_curve\",\"usage_point_id\": \"PDL_ID\",\"start\": \"2020-09-10\",\"end\": \"2020-09-17\"}'\n"
+          },
+          {
+            "lang": "php",
+            "source": "$request = new HttpRequest(); $request->setUrl('https://enedisgateway.tech/api'); $request->setMethod(HTTP_METH_POST); $request->setHeaders(array(\n  'Content-Type' => 'application/json',\n  'Authorization' => 'TOKEN'\n));\n$request->setBody('{\n  \"type\": \"consumption_load_curve\",\n  \"usage_point_id\": PDL_ID,\n  \"start\": \"2020-08-01\",\n  \"end\": \"2020-08-08\"\n}');\ntry {\n  $response = $request->send();\n  echo $response->getBody();\n} catch (HttpException $ex) {\n  echo $ex;\n}\n"
+          },
+          {
+            "lang": "python",
+            "source": "import http.client\nimport json\nconn = http.client.HTTPSConnection(\"enedisgateway.tech\")\npayload = {\n  'type': 'consumption_load_curve',\n  'usage_point_id': PDL_ID,\n  'start': '2020-08-01',\n  'end': '2020-08-08'}\n\nheaders = {\n  'Authorization': \"TOKEN\",\n  'Content-Type': \"application/json\",\n}\nconn.request(\"POST\", \"/api\", json.dumps(payload), headers)\nres = conn.getresponse()\ndata = res.read()\nprint(data.decode(\"utf-8\"))\n"
+          }
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://enedisgateway.tech/"
+    }
+  ],
+  "components": {
+    "parameters": {
+      "authorizationParamsHeader": {
+        "name": "Authorization",
+        "in": "header",
+        "description": "Jeton obtenu lors du consentement",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "Addresses": {
+        "description": "Adresse du PDL",
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          }
+        },
+        "example": {
+          "customer": {
+            "customer_id": "-1234567890",
+            "usage_points": [
+              {
+                "usage_point": {
+                  "usage_point_id": 12345678901234,
+                  "usage_point_status": "com",
+                  "meter_type": "AMM",
+                  "usage_point_addresses": {
+                    "street": "1 rue de chez moi",
+                    "postal_code": "75001",
+                    "insee_code": "75001",
+                    "city": "PARIS",
+                    "country": "France"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "API_BODY": {
+        "required": [
+          "type",
+          "usage_point_id"
+        ],
+        "properties": {
+          "type": {
+            "description": "Le type de requête effectué:\n * `consumption_load_curve` - Retourne les données de consommation par pas de 10, 30 ou 60 minutes (30 par défaut), pour chaque jour de la période demandée. La plage demandée ne peut excéder 7 jours et sur une période de moins de 24 mois et 15 jours avant la date d'appel.\n * `daily_consumption_max_power` - Retourne la donnée maximale de consommation par pas de 1 jour, pour chaque jour de la période demandée. La plage demandée ne peut être que sur une période de moins de 36 mois et 15 jours avant la date d'appel.\n * `daily_consumption` - Retourne les données de consommation par pas de 1 jour, pour chaque jour de la période demandée. La plage demandée ne peut être que sur une période de moins de 36 mois et 15 jours avant la date d'appel.\n * `production_load_curve` - Retourne les données de production par pas de 10, 30 ou 60 minutes (30 par défaut), pour chaque jour de la période demandée. La plage demandée ne peut excéder 7 jours et sur une période de moins de 24 mois et 15 jours avant la date d'appel.\n * `daily_production` - Retourne les données de production par pas de 1 jour, pour chaque jour de la période demandée. La plage demandée ne peut être que sur une période de moins de 36 mois et 15 jours avant la date d'appel.\n * `identity` - Retourne l'identité du client\n * `contracts` - Retourne les données contractuelles\n * `addresses` - Retourne l'adresse du point de livraison et/ou production\n",
+            "type": "string",
+            "enum": [
+              "consumption_load_curve",
+              "daily_consumption_max_power",
+              "daily_consumption",
+              "production_load_curve",
+              "daily_production",
+              "identity",
+              "contracts",
+              "addresses"
+            ],
+            "example": "consumption_load_curve"
+          },
+          "usage_point_id": {
+            "$ref": "#/components/schemas/PDL"
+          },
+          "start": {
+            "$ref": "#/components/schemas/IsoDate"
+          },
+          "end": {
+            "$ref": "#/components/schemas/IsoDate"
+          }
+        }
+      },
+      "ConsumptionLoadCurve": {
+        "description": "TODO",
+        "properties": {
+          "meter_reading": {
+            "type": "object",
+            "properties": {
+              "usage_point_id": {
+                "$ref": "#/components/schemas/PDL"
+              },
+              "start": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "end": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "quality": {
+                "description": "Qualité de la donnée",
+                "type": "string",
+                "enum": [
+                  "BRUT"
+                ]
+              },
+              "interval_reading": {
+                "type": "array",
+                "items": {
+                  "properties": {
+                    "value": {
+                      "description": "Valeur du point en Wh.",
+                      "type": "integer"
+                    },
+                    "date": {
+                      "$ref": "#/components/schemas/IsoDate3"
+                    },
+                    "interval_length": {
+                      "description": "Intervalle du point (PTM30M par défaut):\n * `PT10M` - Pas de 10 minutes\n * `PT30M` - Pas de 30 minutes\n * `PT60M` - Pas de 60 minutes\n",
+                      "type": "string",
+                      "enum": [
+                        "PT10M",
+                        "PT30M",
+                        "PT60M"
+                      ]
+                    },
+                    "measure_type": {
+                      "description": "Type de mesure:\n * `B` - Brut\n",
+                      "type": "string",
+                      "enum": [
+                        "B"
+                      ]
+                    }
+                  }
+                }
+              },
+              "reading_type": {
+                "properties": {
+                  "unit": {
+                    "description": "Unité des données de mesure",
+                    "type": "string",
+                    "enum": [
+                      "W"
+                    ]
+                  },
+                  "measurement_kind": {
+                    "description": "Type de grandeur retournée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "energy",
+                      "power",
+                      "voltage"
+                    ]
+                  },
+                  "aggregate": {
+                    "description": "Façon dont la grandeur a été mesurée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "average",
+                      "maximum",
+                      "sum"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "meter_reading": {
+            "usage_point_id": "12345678901234",
+            "start": "2020-09-19",
+            "end": "2020-09-20",
+            "quality": "BRUT",
+            "interval_reading": [
+              {
+                "value": "218",
+                "date": "2020-09-19 00:30:00",
+                "interval_length": "PT30M",
+                "measure_type": "B"
+              },
+              {
+                "value": "176",
+                "date": "2020-09-19 01:00:00",
+                "interval_length": "PT30M",
+                "measure_type": "B"
+              }
+            ],
+            "reading_type": {
+              "unit": "W",
+              "measurement_kind": "power",
+              "aggregate": "average"
+            }
+          }
+        }
+      },
+      "ProductionLoadCurve": {
+        "description": "TODO",
+        "properties": {
+          "meter_reading": {
+            "type": "object",
+            "properties": {
+              "usage_point_id": {
+                "$ref": "#/components/schemas/PDL"
+              },
+              "start": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "end": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "quality": {
+                "description": "Qualité de la donnée",
+                "type": "string",
+                "enum": [
+                  "BRUT"
+                ]
+              },
+              "interval_reading": {
+                "type": "array",
+                "items": {
+                  "properties": {
+                    "value": {
+                      "description": "Valeur du point en Wh.",
+                      "type": "integer"
+                    },
+                    "date": {
+                      "$ref": "#/components/schemas/IsoDate3"
+                    },
+                    "interval_length": {
+                      "description": "Intervalle du point (PTM30M par défaut):\n * `PT10M` - Pas de 10 minutes\n * `PT30M` - Pas de 30 minutes\n * `PT60M` - Pas de 60 minutes\n",
+                      "type": "string",
+                      "enum": [
+                        "PT10M",
+                        "PT30M",
+                        "PT60M"
+                      ]
+                    },
+                    "measure_type": {
+                      "description": "Type de mesure:\n * `B` - Brut\n",
+                      "type": "string",
+                      "enum": [
+                        "B"
+                      ]
+                    }
+                  }
+                }
+              },
+              "reading_type": {
+                "properties": {
+                  "unit": {
+                    "description": "Unité des données de mesure",
+                    "type": "string",
+                    "enum": [
+                      "W"
+                    ]
+                  },
+                  "measurement_kind": {
+                    "description": "Type de grandeur retournée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "energy",
+                      "power",
+                      "voltage"
+                    ]
+                  },
+                  "aggregate": {
+                    "description": "Façon dont la grandeur a été mesurée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "average",
+                      "maximum",
+                      "sum"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "meter_reading": {
+            "usage_point_id": "12345678901234",
+            "start": "2020-09-19",
+            "end": "2020-09-20",
+            "quality": "BRUT",
+            "interval_reading": [
+              {
+                "value": "218",
+                "date": "2020-09-19 00:30:00",
+                "interval_length": "PT30M",
+                "measure_type": "B"
+              },
+              {
+                "value": "176",
+                "date": "2020-09-19 01:00:00",
+                "interval_length": "PT30M",
+                "measure_type": "B"
+              }
+            ],
+            "reading_type": {
+              "unit": "W",
+              "measurement_kind": "power",
+              "aggregate": "average"
+            }
+          }
+        }
+      },
+      "DailyConsumption": {
+        "description": "TODO",
+        "properties": {
+          "meter_reading": {
+            "type": "object",
+            "properties": {
+              "usage_point_id": {
+                "$ref": "#/components/schemas/PDL"
+              },
+              "start": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "end": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "quality": {
+                "description": "Qualité de la donnée",
+                "type": "string",
+                "enum": [
+                  "BRUT"
+                ]
+              },
+              "interval_reading": {
+                "type": "array",
+                "items": {
+                  "properties": {
+                    "value": {
+                      "description": "Valeur du point.",
+                      "type": "integer"
+                    },
+                    "date": {
+                      "$ref": "#/components/schemas/IsoDate2"
+                    }
+                  }
+                }
+              },
+              "reading_type": {
+                "properties": {
+                  "unit": {
+                    "description": "Unité des données de mesure",
+                    "type": "string",
+                    "enum": [
+                      "Wh"
+                    ]
+                  },
+                  "measurement_kind": {
+                    "description": "Type de grandeur retournée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "energy",
+                      "power",
+                      "voltage"
+                    ]
+                  },
+                  "measuring_period": {
+                    "description": "Pas d'aggrégation de la donnée:\n * `P1D` - Pas de 1 jour\n",
+                    "type": "string",
+                    "enum": [
+                      "P1D"
+                    ]
+                  },
+                  "aggregate": {
+                    "description": "Façon dont la grandeur a été mesurée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "average",
+                      "maximum",
+                      "sum"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "meter_reading": {
+            "usage_point_id": "12345678901234",
+            "start": "2020-09-09",
+            "end": "2020-09-20",
+            "quality": "BRUT",
+            "reading_type": {
+              "unit": "Wh",
+              "measurement_kind": "energy",
+              "aggregate": "sum",
+              "measuring_period": "P1D"
+            },
+            "interval_reading": [
+              {
+                "value": "8350",
+                "date": "2020-09-09"
+              },
+              {
+                "value": "8763",
+                "date": "2020-09-10"
+              }
+            ]
+          }
+        }
+      },
+      "DailyProduction": {
+        "description": "TODO",
+        "properties": {
+          "meter_reading": {
+            "type": "object",
+            "properties": {
+              "usage_point_id": {
+                "$ref": "#/components/schemas/PDL"
+              },
+              "start": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "end": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "quality": {
+                "description": "Qualité de la donnée",
+                "type": "string",
+                "enum": [
+                  "BRUT"
+                ]
+              },
+              "interval_reading": {
+                "type": "array",
+                "items": {
+                  "properties": {
+                    "value": {
+                      "description": "Valeur du point.",
+                      "type": "integer"
+                    },
+                    "date": {
+                      "$ref": "#/components/schemas/IsoDate2"
+                    }
+                  }
+                }
+              },
+              "reading_type": {
+                "properties": {
+                  "unit": {
+                    "description": "Unité des données de mesure",
+                    "type": "string",
+                    "enum": [
+                      "Wh"
+                    ]
+                  },
+                  "measurement_kind": {
+                    "description": "Type de grandeur retournée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "energy",
+                      "power",
+                      "voltage"
+                    ]
+                  },
+                  "measuring_period": {
+                    "description": "Pas d'aggrégation de la donnée:\n * `P1D` - Pas de 1 jour\n",
+                    "type": "string",
+                    "enum": [
+                      "P1D"
+                    ]
+                  },
+                  "aggregate": {
+                    "description": "Façon dont la grandeur a été mesurée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "average",
+                      "maximum",
+                      "sum"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "meter_reading": {
+            "usage_point_id": "12345678901234",
+            "start": "2020-09-09",
+            "end": "2020-09-20",
+            "quality": "BRUT",
+            "reading_type": {
+              "unit": "Wh",
+              "measurement_kind": "energy",
+              "aggregate": "sum",
+              "measuring_period": "P1D"
+            },
+            "interval_reading": [
+              {
+                "value": "8350",
+                "date": "2020-09-09"
+              },
+              {
+                "value": "8763",
+                "date": "2020-09-10"
+              }
+            ]
+          }
+        }
+      },
+      "DailyConsumptionMaxPower": {
+        "description": "TODO",
+        "properties": {
+          "meter_reading": {
+            "type": "object",
+            "properties": {
+              "usage_point_id": {
+                "$ref": "#/components/schemas/PDL"
+              },
+              "start": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "end": {
+                "$ref": "#/components/schemas/IsoDate2"
+              },
+              "quality": {
+                "description": "Qualité de la donnée",
+                "type": "string",
+                "enum": [
+                  "BRUT"
+                ]
+              },
+              "interval_reading": {
+                "type": "array",
+                "items": {
+                  "properties": {
+                    "value": {
+                      "description": "Valeur du point.",
+                      "type": "integer"
+                    },
+                    "date": {
+                      "$ref": "#/components/schemas/IsoDate2"
+                    }
+                  }
+                }
+              },
+              "reading_type": {
+                "properties": {
+                  "unit": {
+                    "description": "Unité des données de mesure",
+                    "type": "string",
+                    "enum": [
+                      "Wh"
+                    ]
+                  },
+                  "measurement_kind": {
+                    "description": "Type de grandeur retournée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "energy",
+                      "power",
+                      "voltage"
+                    ]
+                  },
+                  "measuring_period": {
+                    "description": "Pas d'aggrégation de la donnée:\n * `P1D` - Pas de 1 jour\n",
+                    "type": "string",
+                    "enum": [
+                      "P1D"
+                    ]
+                  },
+                  "aggregate": {
+                    "description": "Façon dont la grandeur a été mesurée, suivant le profil metering du standard international CIM.\n",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "average",
+                      "maximum",
+                      "sum"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "meter_reading": {
+            "usage_point_id": "12345678901234",
+            "start": "2020-09-09",
+            "end": "2020-09-20",
+            "quality": "BRUT",
+            "reading_type": {
+              "unit": "Wh",
+              "measurement_kind": "energy",
+              "aggregate": "maximum",
+              "measuring_period": "P1D"
+            },
+            "interval_reading": [
+              {
+                "value": "8350",
+                "date": "2020-09-09"
+              },
+              {
+                "value": "8763",
+                "date": "2020-09-10"
+              }
+            ]
+          }
+        }
+      },
+      "Contract": {
+        "description": "Contrat du PDL",
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          }
+        },
+        "example": {
+          "customer": {
+            "customer_id": "-1234567890",
+            "usage_points": [
+              {
+                "usage_point": {
+                  "usage_point_id": 12345678901234,
+                  "usage_point_status": "com",
+                  "meter_type": "AMM"
+                },
+                "contracts": {
+                  "segment": "C5",
+                  "subscribed_power": "6 kVA",
+                  "distribution_tariff": "BTINFCUST",
+                  "last_activation_date": "2008-03-01+01:00",
+                  "offpeak_hours": "HC (2H04-7H04;14H04-17H04)",
+                  "contract_type": "Contrat Protocole501",
+                  "contract_status": "SERVC",
+                  "last_distribution_tariff_change_date": "2008-03-01+01:00"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "Customer": {
+        "description": "Données client.",
+        "properties": {
+          "customer_id": {
+            "description": "Identifiant du client.",
+            "type": "string"
+          },
+          "usage_points": {
+            "description": "Liste des PDL",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsagePoint"
+            }
+          }
+        }
+      },
+      "Identity": {
+        "description": "Données client.",
+        "properties": {
+          "customer_id": {
+            "description": "Identifiant du client.",
+            "type": "string"
+          },
+          "identity": {
+            "description": "Identité du client",
+            "properties": {
+              "natural_person": {
+                "description": "Personne physique",
+                "properties": {
+                  "title": {
+                    "description": "Civilité",
+                    "type": "string"
+                  },
+                  "firstname": {
+                    "description": "Prénom",
+                    "type": "string"
+                  },
+                  "lastname": {
+                    "description": "Nom",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "customer_id": "-1234567890",
+          "identity": {
+            "natural_person": {
+              "title": "M",
+              "firstname": "JOHN",
+              "lastname": "DOE"
+            }
+          }
+        }
+      },
+      "IsoDate": {
+        "description": "Date au format full-date de la RFC 3339, à savoir YYYY-MM-DD, à utiliser uniquement avec les requêtes consommation/production.",
+        "type": "string",
+        "example": "2020-09-26T15:27:28.484Z"
+      },
+      "IsoDate2": {
+        "description": "Date au format full-date de la RFC 3339, à savoir YYYY-MM-DD.",
+        "type": "string",
+        "example": "2020-09-26T15:27:28.484Z"
+      },
+      "IsoDate3": {
+        "description": "Date au format full-date de la RFC 3339, à savoir YYYY-MM-DD HH:mm:ss.",
+        "type": "string",
+        "example": "2020-09-26T15:27:28.484Z"
+      },
+      "PDL": {
+        "description": "L'identifiant du point de livraison ou de production",
+        "type": "string",
+        "example": 22516914714270
+      },
+      "UsagePoint": {
+        "properties": {
+          "usage_point": {
+            "$ref": "#/components/schemas/UsagePointDetail"
+          },
+          "contracts": {
+            "$ref": "#/components/schemas/UsagePointContract"
+          }
+        }
+      },
+      "UsagePointDetail": {
+        "description": "Point de livraison ou de production du client",
+        "properties": {
+          "usage_point_id": {
+            "description": "Identifiant unique du point d'usage, appellé aussi PRM",
+            "type": "string"
+          },
+          "usage_point_status": {
+            "description": "Statut du point d'usage.\n * `com` - Compteur linky communicant\n * `no_com` - Compteur pas encore communicant\n",
+            "type": "string",
+            "enum": [
+              "com",
+              "no_com"
+            ]
+          },
+          "meter_type": {
+            "description": "Type de compteur.",
+            "typ": "string"
+          },
+          "usage_point_addresses": {
+            "$ref": "#/components/schemas/UsagePointAddress"
+          }
+        }
+      },
+      "UsagePointAddress": {
+        "description": "Adresse du point de livraison ou de production, disponible uniquement avec une requête 'addresses'.",
+        "properties": {
+          "street": {
+            "description": "Numéro et libellé de la voie",
+            "type": "string"
+          },
+          "postal_code": {
+            "description": "Code Postal",
+            "type": "string"
+          },
+          "insee_code": {
+            "description": "Code INSEE de la commune",
+            "type": "string"
+          },
+          "city": {
+            "description": "Nom de la commune",
+            "type": "string"
+          },
+          "country": {
+            "description": "Nom du pays",
+            "type": "string"
+          }
+        }
+      },
+      "UsagePointContract": {
+        "description": "Les informations du contrat, disponible uniquement avec une requête 'contracts'",
+        "properties": {
+          "segment": {
+            "description": "Segment technique de raccordement du client.",
+            "type": "string",
+            "enum": [
+              "C5",
+              "C4",
+              "C3",
+              "C2",
+              "C1",
+              "P3",
+              "P2",
+              "P1"
+            ]
+          },
+          "subscribed_power": {
+            "description": "Puissance souscrite",
+            "type": "string"
+          },
+          "distribution_tariff": {
+            "description": "Type de tarif:\n * `BTINFCUST` - Tarif courte utilisation sans différenciation temporelle\n * `BTINFCUDT` - Tarif courte utilisation heures pleines heures creuses\n * `BTINFMUST` - Tarif moyenne utilisation sans différenciation temporelle\n * `BTINFMUDT` - Tarif moyenne utilisation heures pleines heures creuses\n * `BTINFLUST` - Tarif longue utilisation sans différenciation temporelle\n * `BTINFLUDT` - Tarif longue utilisation heures pleines heures creuses\n * `BTINFCU4` - Tarif courte utilisation heures pleines heures creuses associées à deux saisons\n * `BTINFMU4` - Tarif moyenne utilisation heures pleines heures creuses associées à deux saisons\n",
+            "type": "string",
+            "enum": [
+              "BTINFCUST",
+              "BTINFCUDT",
+              "BTINFMUST",
+              "BTINFMUDT",
+              "BTINFLUST",
+              "BTINFLUDT",
+              "BTINFCU4",
+              "BTINFMU4"
+            ]
+          },
+          "last_activation_date": {
+            "description": "Date de dernière mise en service au format full-date de la RFC 3339, à savoir YYYY-MM-DD.",
+            "type": "string"
+          },
+          "offpeak_hours": {
+            "description": "Liste des plages horaires d'heures creuses, si le contrat est en mode HP/HC.",
+            "type": "string"
+          },
+          "contract_type": {
+            "description": "Type de contrat",
+            "type": "string"
+          },
+          "contract_status": {
+            "description": "Etat contractuel:\n * `SERVC : En service\n * `RESIL` - Résilié\n * `ECRES` - En service, en cours de résiliation\n * `ECRAC` - En cours de raccordement\n * `INACCE` - Inaccessible\n",
+            "type": "string"
+          },
+          "last_distribution_tariff_change_date": {
+            "description": "Date de dernière modification de la formule tarifaire d'acheminement au format full-date de la RFC 3339, à savoir YYYY-MM-DD.",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

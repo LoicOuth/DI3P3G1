@@ -1,0 +1,44 @@
+name: CD_MOBILE_APP
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: NodeTool@0
+  displayName: 'Use Node 16.x'
+  inputs:
+    versionSpec: 16.x
+
+- task: Npm@1
+  displayName: 'npm install'
+  inputs:
+    verbose: false
+
+- task: DownloadSecureFile@1
+  displayName: 'Download .env'
+  inputs:
+    secureFile: .env
+    retryCount: 2
+
+- task: CopyFiles@2
+  displayName: 'Import .env'
+  inputs:
+    SourceFolder: '$(Agent.TempDirectory)'
+    Contents: .dev
+    TargetFolder: .
+    OverWrite: true
+
+- task: Npm@1
+  displayName: 'npm install eas'
+  inputs:
+    command: custom
+    verbose: false
+    customCommand: 'install -g eas-cli'
+
+- script: 'eas build -p android --non-interactive'
+  displayName: 'build & deploy to expo'
+  env:
+    EXPO_TOKEN: $(EXPO_TOKEN)
